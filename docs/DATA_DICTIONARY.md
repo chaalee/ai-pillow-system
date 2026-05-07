@@ -6,7 +6,7 @@ This document provides complete field definitions, units, collection protocols, 
 
 ## 1. Garmin Sleep Data (`data/garmin_sleep/`)
 
-Data were collected via a Garmin wearable device and exported through the **Labfront** research platform ([help.labfront.com/data-documentation](https://help.labfront.com/data-documentation)). Each CSV file contains a **5-row Labfront metadata header** followed by a blank line, then the actual column headers and data rows. All files share a common header structure.
+Data were collected via a Garmin wearable device and exported through the **Labfront** research platform ([help.labfront.com/data-documentation](https://help.labfront.com/data-documentation)). Each CSV file contains physiological time series with a standardized header structure.
 
 ### File Naming Convention
 
@@ -204,7 +204,7 @@ These CSV files capture physiological values as extracted live by the Tesseract 
 
 ## 3. Head Rotation Data (`data/head_rotation/`)
 
-Inertial Measurement Unit (IMU) measurements from a surrogate head (mannequin with embedded 3-axis accelerometer) resting on the smart pillow. Raw acceleration and derived orientation angles were recorded during actuation trials.
+Inertial Measurement Unit (IMU) measurements from a surrogate head (mannequin with embedded 3-axis accelerometer) resting on the smart pillow. Raw acceleration and derived orientation angles were recorded.
 
 ---
 
@@ -243,44 +243,60 @@ IMU sensor readings and derived orientation angles.
 
 ## 4. Pressure Sensing Data (`data/pressure_sensing/`)
 
-Spatial pressure distribution data from the 32×16 (512-point) piezoresistive pressure mat. Raw data are provided as NumPy arrays; summary statistics are provided as CSV.
+Spatial pressure distribution data from the 32×16 (512-point) piezoresistive pressure mat. Raw readings are provided as CSV time series, with one column per sensing cell.
 
 ---
 
-### `pressure_maps/` — NumPy `.npy` files
+### `session_<id>.csv` — Pressure Matrix Time Series
 
-Each file: `pressure_<session_id>_<trial_id>.npy`
+Each session file contains per-frame pressure values across all 512 cells.
 
-- **Shape:** `(N_frames, 32, 16)` where N_frames varies by session
-- **Values:** Raw normalized float32, range 0.0–1.0 (0 = no contact, 1 = max measurable load)
-- **Sampling rate:** ~5 Hz (200 ms per frame)
-
----
-
-### `pressure_summary.csv`
+**File structure:**
+- **Rows:** Timestamped pressure frames, one per row
+- **Columns:** `timestamp` + 512 pressure cells (`p0` through `p511`)
+- **Sampling rate:** ~5 Hz (approximately 100–150 ms between frames)
 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
-| `frame_id` | int | — | Sequential frame index |
-| `session_id` | string | — | Session identifier |
-| `trial_id` | string | — | Trial identifier |
-| `max_pressure_x` | int | grid index | Column index of max pressure point |
-| `max_pressure_y` | int | grid index | Row index of max pressure point |
-| `max_pressure_val` | float | 0–1 | Maximum pressure value in frame |
-| `contact_area_cells` | int | # cells | Number of cells above threshold (0.1) |
-| `centroid_x` | float | grid index | Pressure centroid, x-axis |
-| `centroid_y` | float | grid index | Pressure centroid, y-axis |
+| `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS.mmm` | Wall-clock frame capture time with millisecond precision |
+| `p0` – `p511` | int | pressure units | Raw pressure reading from cell index (row, col) = (i // 16, i % 16). Cell indices map to physical 32-row × 16-col grid. |
 
----
+**Pressure cell mapping:**
+- Cell index `i` maps to grid position: `row = i // 16`, `col = i % 16`
+- Grid spans 32 rows (head-to-foot) × 16 columns (side-to-side)
+- Total cells: 512
 
-### `contact_regions.csv`
+**Observed value ranges:**
+- Most cells: 0 (no contact)
+- Active cells during contact: 0–255+ (raw ADC counts or normalized pressure)
+- Example from session_B.csv: p84=33–35 during contact events
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `frame_id` | int | Frame index |
-| `session_id` | string | Session identifier |
-| `region_label` | string | `top-left`, `top-center`, `top-right`, `mid-left`, etc. |
-| `dominant_chamber` | string | Nearest pneumatic chamber ID |
+**Notable patterns:**
+- Long periods of all-zero readings indicate no contact or inactivity
+- Non-zero clusters indicate localized pressure contact (e.g., head, shoulders)
+- Temporal continuity expected within contact regions; isolated spikes may be noise
+
+**Example rows (session_B.csv):**
+```
+timestamp,p0,p1,...,p83,p84,p85,...,p511
+2026-05-07 17:16:46.736,0,0,...,0,33,0,...,0
+2026-05-07 17:16:46.839,0,0,...,0,33,0,...,0
+2026-05-07 17:16:46.936,0,0,...,0,35,0,...,0
+```
+
+**Loading in Python:**
+```python
+import pandas as pd
+df = pd.read_csv("data/pressure_sensing/session_A.csv")
+# df.shape → (N_frames, 513)  # timestamp + 512 pressure cells
+# df.columns → ['timestamp', 'p0', 'p1', ..., 'p511']
+
+# Extract pressure matrix for frame i
+frame_i = df.iloc[i, 1:].values.reshape(32, 16)  # shape (32, 16)
+
+# Find contact centroid
+contact_coords = (df.iloc[i, 1:] > 0).nonzero()[0]
+```
 
 ---
 
