@@ -1,7 +1,5 @@
 # Garmin Sleep Data
 
-Place Garmin-exported physiological data files here.
-
 ## Expected files
 
 | File | Description |
