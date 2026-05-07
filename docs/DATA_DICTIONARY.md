@@ -300,20 +300,6 @@ contact_coords = (df.iloc[i, 1:] > 0).nonzero()[0]
 
 ---
 
-## Signal Preprocessing Summary
-
-All signals fed to the AI model undergo the following preprocessing (see `scripts/preprocessing/`):
-
-| Signal | Filter | Resampling | Normalization |
-|--------|--------|-----------|---------------|
-| IMU Acceleration (X, Y, Z) | Butterworth bandpass 0.5–20 Hz | 1 Hz polyphase | z-score per channel |
-| Pitch / Roll | Low-pass 1 Hz | 1 Hz polyphase | z-score per channel |
-| Pressure Map | Median 3×3 kernel | 1 Hz polyphase | z-score per frame |
-
-**Windowing:** 60-second sliding windows, 50% overlap (30-second step), yielding tensors of shape `(6, 60)` for IMU (acceleration + angles) or `(32, 16, 60)` for pressure maps.
-
----
-
 ## Data Availability
 
 All data in this repository were collected under controlled pre-clinical (non-human) conditions at Chulalongkorn University. Raw data files are available from the corresponding author upon reasonable request.
