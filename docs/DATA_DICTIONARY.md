@@ -6,7 +6,7 @@ This document provides complete field definitions, units, collection protocols, 
 
 ## 1. Garmin Sleep Data (`data/garmin_sleep/`)
 
-Data were exported from a Garmin wearable device via its companion smartphone app. Values were subsequently extracted using the vision-based OCR pipeline described in Section 4.3 of the paper and cross-referenced with manual annotations.
+Data were exported from a Garmin wearable device via its companion smartphone app. Values were subsequently extracted using the vision-based OCR pipeline described in Section 4.3 of the paper and cross-validated with device logs.
 
 ---
 
@@ -107,9 +107,13 @@ These CSV files capture physiological values as extracted live by the Tesseract 
 |--------|------|------|-------------|
 | `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS` | Wall-clock extraction time |
 | `session_id` | string | — | Session identifier |
-| `heart_rate` | int | bpm | HR as displayed on companion app |
-| `respiration` | int | brpm | RR as displayed on companion app |
-| `spo2` | int | % | SpO₂ as displayed |
+| `heart_rate_bpm` | int | bpm | HR as displayed on companion app |
+| `respiration_rate_brpm` | int | brpm | RR as displayed on companion app |
+| `spo2_pct` | int | % | SpO₂ as displayed |
+| `ocr_confidence` | float | 0–1 | Mean Tesseract confidence across ROIs |
+| `frame_id` | int | — | Sequential frame index |
+| `ai_state` | string | — | `NORMAL` / `APNEA` / `PENDING` at this timestep |
+| `actuation_triggered` | int | 0/1 | 1 = actuation command issued this cycle |
 
 **OCR Pipeline:**
 1. Screen mirroring via MSS frame capture
@@ -127,7 +131,7 @@ These CSV files capture physiological values as extracted live by the Tesseract 
 
 ## 3. Head Rotation Data (`data/head_rotation/`)
 
-Inertial Measurement Unit (IMU) measurements from a surrogate head (mannequin with embedded 3-axis accelerometer) resting on the smart pillow. Raw acceleration and derived orientation angles were recorded continuously across multiple sessions.
+Inertial Measurement Unit (IMU) measurements from a surrogate head (mannequin with embedded 3-axis accelerometer) resting on the smart pillow. Raw acceleration and derived orientation angles were recorded during actuation trials.
 
 ---
 
@@ -137,10 +141,10 @@ IMU sensor readings and derived orientation angles.
 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
-| `Timestamp` | datetime | `YYYY-MM-DD HH:MM:SS.mmm` | Wall-clock recording time |
-| `Raw_X` | float | m/s² | X-axis accelerometer reading |
-| `Raw_Y` | float | m/s² | Y-axis accelerometer reading |
-| `Raw_Z` | float | m/s² | Z-axis accelerometer reading |
+| `Timestamp` | datetime | `YYYY-MM-DD HH:MM:SS.mmm` | Wall-clock recording time with millisecond precision |
+| `Raw_X` | float | m/s² | X-axis linear acceleration |
+| `Raw_Y` | float | m/s² | Y-axis linear acceleration |
+| `Raw_Z` | float | m/s² | Z-axis linear acceleration |
 | `Pitch_Deg` | float | ° | Pitch angle (rotation about X-axis) |
 | `Roll_Deg` | float | ° | Roll angle (rotation about Y-axis) |
 
@@ -148,18 +152,19 @@ IMU sensor readings and derived orientation angles.
 
 | Metric | Min | Max | Notes |
 |--------|-----|-----|-------|
-| Raw_X | ~-13 | ~45 | m/s² |
-| Raw_Y | ~-35 | ~-27 | m/s² |
-| Raw_Z | ~-260 | ~-245 | m/s² (gravity component dominant) |
-| Pitch_Deg | ~-12.6 | ~3.0 | ° |
-| Roll_Deg | ~-9.9 | ~-6.1 | ° |
+| Raw_X | -13.0 | +45.0 | m/s² — varies with head motion and pneumatic actuation |
+| Raw_Y | -35.0 | +0.0 | m/s² — gravity component dominant at rest (~-9.8 m/s²) |
+| Raw_Z | -260.0 | -245.0 | m/s² — Z-axis stabilized by mounting orientation; includes gravity |
+| Pitch_Deg | -12.56 | +3.18 | ° — derived from accelerometer via complementary filter |
+| Roll_Deg | -9.99 | -6.14 | ° — derived from accelerometer via complementary filter |
 
 **Notes:**
-- Sampling rate: ~10 Hz (100 ms nominal intervals)
-- Accelerometer range: ±16 g (typical for embedded IMU sensors)
-- Z-axis includes gravity component (~-9.81 m/s² ≈ -250 raw units at rest)
-- Pitch and roll derived using complementary filter or similar orientation algorithm
-- All timestamps synchronized to wall-clock time (UTC-based)
+- Sampling rate: ~10 Hz (100 ms nominal intervals, with occasional variance)
+- Accelerometer range: ±16 g (full scale typical for embedded 6-axis IMUs)
+- Z-axis baseline: ~-250 m/s² reflects gravity component plus sensor mounting orientation
+- Pitch and Roll angles computed using complementary or Kalman filter from raw acceleration data
+- All timestamps synchronized to wall-clock time (YYYY-MM-DD HH:MM:SS.mmm format)
+- Use millisecond precision for sub-second temporal resolution in analysis
 
 ---
 
@@ -256,11 +261,11 @@ All signals fed to the AI model undergo the following preprocessing (see `script
 
 | Signal | Filter | Resampling | Normalization |
 |--------|--------|-----------|---------------|
-| IMU Acceleration | Butterworth bandpass 0.5–20 Hz | 1 Hz polyphase | z-score per channel |
+| IMU Acceleration (X, Y, Z) | Butterworth bandpass 0.5–20 Hz | 1 Hz polyphase | z-score per channel |
 | Pitch / Roll | Low-pass 1 Hz | 1 Hz polyphase | z-score per channel |
 | Pressure Map | Median 3×3 kernel | 1 Hz polyphase | z-score per frame |
 
-**Windowing:** 60-second sliding windows, 50% overlap (30-second step), yielding tensors of shape `(3, 60)` for IMU or `(32, 16, 60)` for pressure maps.
+**Windowing:** 60-second sliding windows, 50% overlap (30-second step), yielding tensors of shape `(6, 60)` for IMU (acceleration + angles) or `(32, 16, 60)` for pressure maps.
 
 ---
 
