@@ -6,92 +6,170 @@ This document provides complete field definitions, units, collection protocols, 
 
 ## 1. Garmin Sleep Data (`data/garmin_sleep/`)
 
-Data were exported from a Garmin wearable device via its companion smartphone app. Values were subsequently extracted using the vision-based OCR pipeline described in Section 4.3 of the paper and cross-validated with device logs.
+Data were collected via a Garmin wearable device and exported through the **Labfront** research platform ([help.labfront.com/data-documentation](https://help.labfront.com/data-documentation)). Each CSV file contains a **5-row Labfront metadata header** followed by a blank line, then the actual column headers and data rows. All files share a common header structure.
+
+### File Naming Convention
+
+Files follow the Labfront export naming pattern:
+
+```
+<YYMMDD>_garmin-connect-<data-type>_<participantInsignia>_<participantId-prefix>.csv
+```
+
+Example: `260324_garmin-connect-sleep-pulse-ox_A000_2bb4e22b.csv`
 
 ---
 
-### `hrv_series.csv`
+### Common Labfront File Header (rows 1–5, present in all files)
 
-Heart rate variability time series.
+| Row | Content | Example |
+|-----|---------|---------|
+| 1 | `Header Length,5` | Signals 5 header rows before data |
+| 2 | `Powered by Labfront` | Platform identifier |
+| 3 | `Documentation,<url>` | Link to Labfront data docs |
+| 4 | Column labels: `projectId,projectTitle,participantId,participantInsignia` | — |
+| 5 | Participant metadata values | `105b2a61-...,Garmin Sleep Test,2bb4e22b-...,A000` |
+
+Row 6 is blank. Row 7 onward is the actual data header + rows.
+
+**Loading in Python (skip the header):**
+```python
+import pandas as pd
+df = pd.read_csv("garmin_sleep/260324_garmin-connect-hrv-values_A000_2bb4e22b.csv",
+                 skiprows=6)
+```
+
+---
+
+### Common Columns (present in all four files)
 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
-| `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS` | Recording time |
-| `session_id` | string | — | Unique session identifier |
-| `rr_interval_ms` | float | ms | R-R interval between successive heartbeats |
-| `hrv_rmssd` | float | ms | Root mean square of successive RR differences |
-| `hrv_sdnn` | float | ms | Standard deviation of NN intervals |
-| `quality_flag` | int | 0/1 | 1 = valid, 0 = noisy / artifact |
-
-**Notes:**
-- Butterworth bandpass filter applied: 0.5–40 Hz before feature extraction
-- `quality_flag = 0` rows should be excluded from model training
+| `*SummaryId` | string | — | Session-level unique ID linking all rows of the same sleep session (e.g., `sleepSummaryId`, `hrvSummaryId`). Same value across all rows of one night's recording. |
+| `timezoneOffsetInMs` | int | ms | UTC offset of the recording device. `25200000` = UTC+7 (Bangkok, ICT) |
+| `unixTimestampInMs` | int | ms | Unix epoch timestamp in milliseconds |
+| `isoDate` | string | ISO 8601 | Human-readable local datetime with timezone offset, e.g. `2026-03-24T00:34:00.000+07:00` |
 
 ---
 
-### `respiration_series.csv`
+### `garmin-connect-hrv-values` — HRV Time Series
 
-Respiration rate over time.
+**Sampling interval:** 5 minutes  
+**Rows per night (example):** ~62 rows
 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
-| `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS` | Recording time |
-| `session_id` | string | — | Unique session identifier |
-| `respiration_rate_brpm` | float | breaths/min | Instantaneous respiration rate |
-| `airflow_proxy` | float | normalized | Wrist-derived airflow proxy signal (0–1) |
-| `quality_flag` | int | 0/1 | 1 = valid |
+| `hrvSummaryId` | string | — | Session ID (shorter format vs. sleep files, e.g. `x5f7febc-69c17951`) |
+| `timezoneOffsetInMs` | int | ms | See common columns |
+| `unixTimestampInMs` | int | ms | See common columns |
+| `isoDate` | string | — | See common columns |
+| `hrv` | int | ms | HRV value (RMSSD — root mean square of successive RR differences), recorded every 5 minutes during sleep |
 
-**Notes:**
-- Butterworth bandpass filter applied: 0.1–3 Hz (airflow channel)
-- Resampled to 1 Hz using polyphase antialiasing
-- Apnea events manifest as `respiration_rate_brpm ≈ 0` for ≥10 s
+**Observed value range:** 42–102 ms (in sample session)  
+**Typical baseline:** 60–100 ms during sleep; lower values may indicate sympathetic arousal or sleep disruption
+
+**Example rows:**
+```
+hrvSummaryId,timezoneOffsetInMs,unixTimestampInMs,isoDate,hrv
+x5f7febc-69c17951,25200000,1774287248000,2026-03-24T00:34:08.000+07:00,72
+x5f7febc-69c17951,25200000,1774287548000,2026-03-24T00:39:08.000+07:00,96
+```
 
 ---
 
-### `spo2_series.csv`
+### `garmin-connect-sleep-pulse-ox` — SpO₂ Time Series
 
-Blood oxygen saturation over time.
+**Sampling interval:** 1 minute  
+**Rows per night (example):** ~312 rows
 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
-| `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS` | Recording time |
-| `session_id` | string | — | Unique session identifier |
-| `spo2_pct` | float | % | SpO₂ percentage (0–100) |
-| `quality_flag` | int | 0/1 | 1 = valid |
+| `sleepSummaryId` | string | — | Sleep session ID (longer format, e.g. `x5f7febc-69c17951-4344`) |
+| `timezoneOffsetInMs` | int | ms | See common columns |
+| `unixTimestampInMs` | int | ms | See common columns |
+| `isoDate` | string | — | See common columns |
+| `spo2` | int | % | Blood oxygen saturation, integer percentage |
 
-**Notes:**
-- 3-point median filter applied to reduce motion artifact
-- Typical baseline: 95–100 %
-- Desaturation events (SpO₂ < 90 %) occur 30–60 s after apnea onset
+**Observed value range:** 83–100% (in sample session)  
+**Notable:** Values dropping to 83–88% visible in sample data (~01:56–02:03 and other periods), consistent with transient desaturation events. Typical baseline: 95–100%.
+
+**Example rows:**
+```
+sleepSummaryId,timezoneOffsetInMs,unixTimestampInMs,isoDate,spo2
+x5f7febc-69c17951-4344,25200000,1774287240000,2026-03-24T00:34:00.000+07:00,97
+x5f7febc-69c17951-4344,25200000,1774292160000,2026-03-24T01:56:00.000+07:00,88
+```
 
 ---
 
-### `sleep_stages.csv`
+### `garmin-connect-sleep-respiration` — Respiration Rate Time Series
 
-Sleep stage annotations (where applicable).
+**Sampling interval:** 1 minute  
+**Rows per night (example):** ~310 rows
 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
-| `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS` | Epoch start time |
-| `session_id` | string | — | Unique session identifier |
-| `stage` | string | — | `WAKE`, `LIGHT`, `DEEP`, `REM` |
-| `epoch_duration_s` | int | s | Duration of this epoch (typically 30 s) |
-| `source` | string | — | `garmin_auto` or `manual_annotation` |
+| `sleepSummaryId` | string | — | Sleep session ID |
+| `timezoneOffsetInMs` | int | ms | See common columns |
+| `unixTimestampInMs` | int | ms | See common columns |
+| `isoDate` | string | — | See common columns |
+| `breathsPerMinute` | float | breaths/min | Instantaneous respiration rate, reported to 2 decimal places |
+
+**Observed value range:** 11.70–20.33 breaths/min (in sample session)  
+**Notable:** Values dipping to ~11–13 breaths/min visible at multiple timepoints (e.g., 01:43, 03:00, 03:48), consistent with periodic breathing reduction. Normal sleep range: 12–20 breaths/min.
+
+**Gaps in timestamps:** Minor gaps exist in the data (e.g., 00:58 → 01:01, skipping 00:59–01:00). These may reflect periods where the device could not compute a valid respiration estimate.
+
+**Example rows:**
+```
+sleepSummaryId,timezoneOffsetInMs,unixTimestampInMs,isoDate,breathsPerMinute
+x5f7febc-69c17951-4344,25200000,1774287240000,2026-03-24T00:34:00.000+07:00,17.58
+x5f7febc-69c17951-4344,25200000,1774291380000,2026-03-24T01:43:00.000+07:00,11.70
+```
 
 ---
 
-### `session_metadata.csv`
+### `garmin-connect-sleep-stage` — Sleep Stage Annotations
 
-Top-level session information.
+**Epoch duration:** Variable (not fixed 30 s — Garmin uses variable-length epochs)  
+**Rows per night (example):** ~25 rows (one row per stage transition)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `session_id` | string | Unique identifier (e.g., `S001`) |
-| `date` | date | Collection date |
-| `duration_min` | int | Total session duration (minutes) |
-| `condition` | string | `surrogate_head` / `static_load` / `baseline` |
-| `chamber_layout` | string | Active chamber configuration |
-| `notes` | string | Free-text notes |
+| Column | Type | Unit | Description |
+|--------|------|------|-------------|
+| `sleepSummaryId` | string | — | Sleep session ID |
+| `timezoneOffsetInMs` | int | ms | See common columns |
+| `unixTimestampInMs` | int | ms | Epoch start time |
+| `isoDate` | string | — | Epoch start datetime |
+| `durationInMs` | int | ms | Duration of this sleep stage epoch |
+| `type` | string | — | Sleep stage label: `light`, `deep`, `rem`, or `awake` |
+
+**Stage label mapping:**
+
+| `type` value | Description |
+|-------------|-------------|
+| `light` | Light NREM sleep (N1/N2) |
+| `deep` | Deep / slow-wave sleep (N3) |
+| `rem` | REM sleep |
+| `awake` | Wakefulness during sleep period |
+
+**Duration notes:** `durationInMs` values range from 60,000 ms (1 min) to 3,300,000 ms (55 min) in the sample. Convert to minutes: `durationInMs / 60000`.
+
+**Example rows:**
+```
+sleepSummaryId,timezoneOffsetInMs,unixTimestampInMs,isoDate,durationInMs,type
+x5f7febc-69d553f4-59ed,25200000,1775588340000,2026-04-08T01:59:00.000+07:00,360000,light
+x5f7febc-69d553f4-59ed,25200000,1775588700000,2026-04-08T02:05:00.000+07:00,1800000,deep
+x5f7febc-69d553f4-59ed,25200000,1775590500000,2026-04-08T02:35:00.000+07:00,120000,awake
+```
+
+**Sleep architecture in sample session (2026-04-08):**
+
+| Stage | Total duration |
+|-------|---------------|
+| Light | ~149 min |
+| Deep | ~39 min |
+| REM | ~40 min |
+| Awake | ~25 min |
 
 ---
 
@@ -106,14 +184,9 @@ These CSV files capture physiological values as extracted live by the Tesseract 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
 | `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS` | Wall-clock extraction time |
-| `session_id` | string | — | Session identifier |
-| `heart_rate_bpm` | int | bpm | HR as displayed on companion app |
-| `respiration_rate_brpm` | int | brpm | RR as displayed on companion app |
-| `spo2_pct` | int | % | SpO₂ as displayed |
-| `ocr_confidence` | float | 0–1 | Mean Tesseract confidence across ROIs |
-| `frame_id` | int | — | Sequential frame index |
-| `ai_state` | string | — | `NORMAL` / `APNEA` / `PENDING` at this timestep |
-| `actuation_triggered` | int | 0/1 | 1 = actuation command issued this cycle |
+| `heart_rate` | int | bpm | HR as displayed on companion app |
+| `respiration` | int | brpm | RR as displayed on companion app |
+| `spo2` | int | % | SpO₂ as displayed |
 
 **OCR Pipeline:**
 1. Screen mirroring via MSS frame capture
@@ -165,50 +238,6 @@ IMU sensor readings and derived orientation angles.
 - Pitch and Roll angles computed using complementary or Kalman filter from raw acceleration data
 - All timestamps synchronized to wall-clock time (YYYY-MM-DD HH:MM:SS.mmm format)
 - Use millisecond precision for sub-second temporal resolution in analysis
-
----
-
-### `orientation_trials.csv` (if present)
-
-Summary statistics per trial.
-
-| Column | Type | Unit | Description |
-|--------|------|------|-------------|
-| `trial_id` | string | — | Unique trial ID (e.g., `T001`) |
-| `session_id` | string | — | Parent session |
-| `chamber_activated` | string | — | Comma-separated list of activated chamber IDs |
-| `actuation_pattern` | string | — | `inflate` / `deflate` / `inflate-hold-deflate` |
-| `initial_pitch_deg` | float | ° | Pitch before actuation |
-| `initial_roll_deg` | float | ° | Roll before actuation |
-| `final_pitch_deg` | float | ° | Pitch after actuation settled |
-| `final_roll_deg` | float | ° | Roll after actuation settled |
-| `delta_theta_deg` | float | ° | Net orientation change (Δθ) |
-
----
-
-### `displacement_array.csv` (if present)
-
-Flattened array of displacement measurements for scatter plot reproduction (Fig. 9b in paper).
-
-| Column | Type | Unit | Description |
-|--------|------|------|-------------|
-| `abs_displacement_mm` | float | mm | \|ΔX\| per measurement |
-| `delta_theta_deg` | float | ° | Corresponding Δθ |
-| `initial_contact_x_mm` | float | mm | Horizontal sensor position at start |
-| `initial_contact_y_mm` | float | mm | Vertical sensor position at start |
-
----
-
-### `delta_theta_array.csv` (if present)
-
-Orientation change values with spatial context for heatmap reproduction (Fig. 9a in paper).
-
-| Column | Type | Unit | Description |
-|--------|------|------|-------------|
-| `sensor_x_mm` | float | mm | Horizontal sensor position |
-| `sensor_y_mm` | float | mm | Vertical sensor position |
-| `delta_theta_deg` | float | ° | Orientation change at this location |
-| `trial_id` | string | — | Source trial |
 
 ---
 
