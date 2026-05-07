@@ -134,18 +134,12 @@ Kinematic measurements from a surrogate head (mannequin with embedded IMU) resti
 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
-| `trial_id` | string | — | Unique trial ID (e.g., `T001`) |
-| `session_id` | string | — | Parent session |
-| `chamber_activated` | string | — | Comma-separated list of activated chamber IDs |
-| `actuation_pattern` | string | — | `inflate` / `deflate` / `inflate-hold-deflate` |
-| `initial_pitch_deg` | float | ° | Pitch before actuation |
-| `initial_roll_deg` | float | ° | Roll before actuation |
-| `final_pitch_deg` | float | ° | Pitch after actuation settled |
-| `final_roll_deg` | float | ° | Roll after actuation settled |
-| `delta_theta_deg` | float | ° | Net orientation change (Δθ) |
-| `abs_displacement_mm` | float | mm | Absolute horizontal displacement \|ΔX\| |
-| `response_time_s` | float | s | Time to reach stable final orientation |
-| `contact_region` | string | — | Dominant pressure region at trial start |
+| `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS` | Wall-clock extraction time |
+| `Raw_X` | float | `m/s^2` | acc_x |
+| `Raw_Y` | float | `m/s^2` | acc_y |
+| `Raw_Z` | float | `m/s^2` | acc_z |
+| `Pitch_Deg` | float | ° | Pitch after actuation settled |
+| `Roll_Deg` | float | ° | Roll after actuation settled |
 
 **Observed ranges:**
 
