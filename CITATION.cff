@@ -42,7 +42,7 @@ keywords:
   - transformer
 
 license: MIT
-repository-code: "https://github.com/<your-org>/ai-pillow-repo"
+repository-code: "https://github.com/chaalee/ai-pillow-system.git"
 
 references:
   - type: article
