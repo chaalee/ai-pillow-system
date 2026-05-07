@@ -4,18 +4,16 @@ Kinematic measurements from surrogate head actuation trials.
 
 ## Files
 
-| File | Description |
-|------|-------------|
-| `orientation_trials.csv` | Pitch, roll, Δθ per trial |
-| `displacement_array.csv` | \|ΔX\| and Δθ pairs for scatter plot (Fig. 9b) |
-| `delta_theta_array.csv` | Δθ with spatial sensor coordinates (Fig. 9a) |
-| `trial_metadata.csv` | Chamber patterns, starting positions |
+`imu_data_<session_id>.csv`
 
-## Key Columns
-
-- `delta_theta_deg` — Net orientation change (degrees), range: 30–65°
-- `abs_displacement_mm` — Horizontal displacement magnitude (mm), range: 0–120 mm
-- `sensor_x_mm`, `sensor_y_mm` — Contact location on pressure mat
+| Column | Type | Unit | Description |
+|--------|------|------|-------------|
+| `Timestamp` | datetime | `YYYY-MM-DD HH:MM:SS.mmm` | Wall-clock recording time with millisecond precision |
+| `Raw_X` | float | m/s² | X-axis linear acceleration |
+| `Raw_Y` | float | m/s² | Y-axis linear acceleration |
+| `Raw_Z` | float | m/s² | Z-axis linear acceleration |
+| `Pitch_Deg` | float | ° | Pitch angle (rotation about X-axis) |
+| `Roll_Deg` | float | ° | Roll angle (rotation about Y-axis) |
 
 See [`../../docs/DATA_DICTIONARY.md`](../../docs/DATA_DICTIONARY.md) for full schema.
 
