@@ -1,0 +1,65 @@
+cff-version: 1.2.0
+message: "If you use this dataset or code, please cite the following."
+
+title: "Embodied AI Smart Pillow — Dataset & Code"
+version: "1.0.0"
+date-released: "2025-01-01"
+
+authors:
+  - family-names: "Chanprasert"
+    given-names: "Chalinee"
+    affiliation: "International School of Engineering, Chulalongkorn University"
+  - family-names: "Duangdee"
+    given-names: "Nutnaree"
+    affiliation: "International School of Engineering, Chulalongkorn University"
+  - family-names: "Trakulmaykee"
+    given-names: "Kirana"
+    affiliation: "International School of Engineering, Chulalongkorn University"
+  - family-names: "Rattanachaipong"
+    given-names: "Waritsanant"
+    affiliation: "International School of Engineering, Chulalongkorn University"
+  - family-names: "Chancharoen"
+    given-names: "Ratchatin"
+    affiliation: "Department of Mechanical Engineering, Chulalongkorn University"
+    orcid: ""
+    email: "Ratchatin.c@chula.ac.th"
+
+abstract: >
+  Dataset and analysis code for the pre-clinical validation of an embodied AI
+  cyber-physical system for real-time closed-loop posture regulation using a
+  soft pneumatic smart pillow. Includes multimodal physiological signals (HR,
+  RR, SpO2), pressure sensor arrays, head orientation data, and the hybrid
+  TCN-Transformer inference model.
+
+keywords:
+  - embodied AI
+  - smart pillow
+  - sleep apnea
+  - pneumatic actuation
+  - closed-loop control
+  - cyber-physical systems
+  - temporal convolutional network
+  - transformer
+
+license: MIT
+repository-code: "https://github.com/<your-org>/ai-pillow-repo"
+
+references:
+  - type: article
+    title: >
+      Embodied AI for Closed-Loop Pneumatic Posture Regulation: A Multimodal
+      Smart Pillow Platform for Pre-Clinical Sleep Support Research
+    authors:
+      - family-names: "Chanprasert"
+        given-names: "Chalinee"
+      - family-names: "Duangdee"
+        given-names: "Nutnaree"
+      - family-names: "Trakulmaykee"
+        given-names: "Kirana"
+      - family-names: "Rattanachaipong"
+        given-names: "Waritsanant"
+      - family-names: "Chancharoen"
+        given-names: "Ratchatin"
+    journal: "[Journal Name]"
+    year: 2025
+    notes: "Under Review"

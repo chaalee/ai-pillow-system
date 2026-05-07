@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data files — large binaries tracked via Git LFS or excluded
+data/processed/
+data/*/pressure_maps/*.npy
+data/garmin_sleep/*.csv
+data/ocr_realtime/realtime_log_*.csv
+data/head_rotation/*.csv
+data/pressure_sensing/pressure_summary.csv
+
+# Model checkpoints
+*.pth
+*.onnx
+*.pt
+
+# Results (auto-generated figures — regenerate with scripts)
+results/*.png
+results/*.pdf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

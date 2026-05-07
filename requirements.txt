@@ -1,0 +1,29 @@
+# Core scientific stack
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.10.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Deep learning
+torch>=2.0.0
+onnxruntime>=1.15.0
+
+# Signal processing
+scikit-learn>=1.3.0
+
+# Computer vision / OCR
+opencv-python>=4.8.0
+pytesseract>=0.3.10
+mss>=9.0.1  # Screen capture
+
+# Embedded / serial communication
+pyserial>=3.5
+
+# Jupyter
+jupyter>=1.0.0
+ipykernel>=6.0.0
+
+# Utilities
+tqdm>=4.65.0
+pyyaml>=6.0
