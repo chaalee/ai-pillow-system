@@ -106,14 +106,9 @@ These CSV files capture physiological values as extracted live by the Tesseract 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
 | `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS` | Wall-clock extraction time |
-| `session_id` | string | — | Session identifier |
-| `heart_rate_bpm` | int | bpm | HR as displayed on companion app |
-| `respiration_rate_brpm` | int | brpm | RR as displayed on companion app |
-| `spo2_pct` | int | % | SpO₂ as displayed |
-| `ocr_confidence` | float | 0–1 | Mean Tesseract confidence across ROIs |
-| `frame_id` | int | — | Sequential frame index |
-| `ai_state` | string | — | `NORMAL` / `APNEA` / `PENDING` at this timestep |
-| `actuation_triggered` | int | 0/1 | 1 = actuation command issued this cycle |
+| `heart_rate` | int | bpm | HR as displayed on companion app |
+| `respiration` | int | brpm | RR as displayed on companion app |
+| `spo2` | int | % | SpO₂ as displayed |
 
 **OCR Pipeline:**
 1. Screen mirroring via MSS frame capture
