@@ -382,32 +382,6 @@ quantized_model = quantizer.quantize_model(original_model, test_loader)
 
 ---
 
-## Explainable AI (XAI)
-
-The `ExplainableAI` class provides interpretability for predictions:
-
-```python
-xai = ExplainableAI(model)
-
-explanation = xai.explain_prediction(window_data)
-# Returns:
-# {
-#     'prediction': 'APNEA',
-#     'confidence': 0.87,
-#     'probabilities': {'Normal': 0.13, 'Apnea': 0.87},
-#     'channel_importance': {
-#         'Heart Rate': 0.42,
-#         'Respiration': 0.35,
-#         'SpO2': 0.23
-#     },
-#     'temporal_importance': array(3, 60)  # Per-timestep importance
-# }
-```
-
-**Method:** Gradient-based feature importance (saliency maps)
-
----
-
 ## Integration with Control Loop
 
 The model operates as a **decision-support module** within the pneumatic pillow's closed-loop control system:
@@ -442,7 +416,6 @@ else:
 | Checkpoint | Purpose | Size |
 |-----------|---------|------|
 | `best_model.pth` | Primary inference model (saved during training) | ~1.4 MB |
-| `quantized_model.pth` | Edge deployment (8-bit) | ~0.35 MB |
 
 Load checkpoints:
 ```python
