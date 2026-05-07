@@ -6,7 +6,7 @@ This document provides complete field definitions, units, collection protocols, 
 
 ## 1. Garmin Sleep Data (`data/garmin_sleep/`)
 
-Data were exported from a Garmin wearable device via its companion smartphone app. Values were subsequently extracted using the vision-based OCR pipeline described in Section 4.3 of the paper and cross-referenced with raw Garmin exports where available.
+Data were exported from a Garmin wearable device via its companion smartphone app. Values were subsequently extracted using the vision-based OCR pipeline described in Section 4.3 of the paper and cross-referenced with manual annotations.
 
 ---
 
@@ -97,7 +97,7 @@ Top-level session information.
 
 ## 2. OCR Real-Time Data (`data/ocr_realtime/`)
 
-These CSV files capture physiological values as extracted live by the Tesseract OCR pipeline from the mirrored Garmin smartphone display during closed-loop system operation. One file is generated per experimental session.
+These CSV files capture physiological values as extracted live by the Tesseract OCR pipeline from the mirrored Garmin smartphone display during closed-loop system operation. One file is generated per session.
 
 ---
 
@@ -106,6 +106,7 @@ These CSV files capture physiological values as extracted live by the Tesseract 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
 | `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS` | Wall-clock extraction time |
+| `session_id` | string | — | Session identifier |
 | `heart_rate` | int | bpm | HR as displayed on companion app |
 | `respiration` | int | brpm | RR as displayed on companion app |
 | `spo2` | int | % | SpO₂ as displayed |
@@ -126,32 +127,61 @@ These CSV files capture physiological values as extracted live by the Tesseract 
 
 ## 3. Head Rotation Data (`data/head_rotation/`)
 
-Kinematic measurements from a surrogate head (mannequin with embedded IMU) resting on the smart pillow. Actuation-induced orientation changes were recorded across repeated trials.
+Inertial Measurement Unit (IMU) measurements from a surrogate head (mannequin with embedded 3-axis accelerometer) resting on the smart pillow. Raw acceleration and derived orientation angles were recorded continuously across multiple sessions.
 
 ---
 
-### `orientation_trials.csv`
+### `imu_data_<session_id>.csv`
+
+IMU sensor readings and derived orientation angles.
 
 | Column | Type | Unit | Description |
 |--------|------|------|-------------|
-| `timestamp` | datetime | `YYYY-MM-DD HH:MM:SS` | Wall-clock extraction time |
-| `Raw_X` | float | `m/s^2` | acc_x |
-| `Raw_Y` | float | `m/s^2` | acc_y |
-| `Raw_Z` | float | `m/s^2` | acc_z |
-| `Pitch_Deg` | float | ° | Pitch after actuation settled |
-| `Roll_Deg` | float | ° | Roll after actuation settled |
+| `Timestamp` | datetime | `YYYY-MM-DD HH:MM:SS.mmm` | Wall-clock recording time |
+| `Raw_X` | float | m/s² | X-axis accelerometer reading |
+| `Raw_Y` | float | m/s² | Y-axis accelerometer reading |
+| `Raw_Z` | float | m/s² | Z-axis accelerometer reading |
+| `Pitch_Deg` | float | ° | Pitch angle (rotation about X-axis) |
+| `Roll_Deg` | float | ° | Roll angle (rotation about Y-axis) |
 
 **Observed ranges:**
 
 | Metric | Min | Max | Notes |
 |--------|-----|-----|-------|
-| Δθ | ~20° | ~65° | Location-dependent |
-| \|ΔX\| | ~5 mm | ~120 mm | Positively correlated with Δθ |
-| Response time | 1 s | 3 s | Pneumatic inflation latency |
+| Raw_X | ~-13 | ~45 | m/s² |
+| Raw_Y | ~-35 | ~-27 | m/s² |
+| Raw_Z | ~-260 | ~-245 | m/s² (gravity component dominant) |
+| Pitch_Deg | ~-12.6 | ~3.0 | ° |
+| Roll_Deg | ~-9.9 | ~-6.1 | ° |
+
+**Notes:**
+- Sampling rate: ~10 Hz (100 ms nominal intervals)
+- Accelerometer range: ±16 g (typical for embedded IMU sensors)
+- Z-axis includes gravity component (~-9.81 m/s² ≈ -250 raw units at rest)
+- Pitch and roll derived using complementary filter or similar orientation algorithm
+- All timestamps synchronized to wall-clock time (UTC-based)
 
 ---
 
-### `displacement_array.csv`
+### `orientation_trials.csv` (if present)
+
+Summary statistics per trial.
+
+| Column | Type | Unit | Description |
+|--------|------|------|-------------|
+| `trial_id` | string | — | Unique trial ID (e.g., `T001`) |
+| `session_id` | string | — | Parent session |
+| `chamber_activated` | string | — | Comma-separated list of activated chamber IDs |
+| `actuation_pattern` | string | — | `inflate` / `deflate` / `inflate-hold-deflate` |
+| `initial_pitch_deg` | float | ° | Pitch before actuation |
+| `initial_roll_deg` | float | ° | Roll before actuation |
+| `final_pitch_deg` | float | ° | Pitch after actuation settled |
+| `final_roll_deg` | float | ° | Roll after actuation settled |
+| `delta_theta_deg` | float | ° | Net orientation change (Δθ) |
+
+---
+
+### `displacement_array.csv` (if present)
 
 Flattened array of displacement measurements for scatter plot reproduction (Fig. 9b in paper).
 
@@ -164,7 +194,7 @@ Flattened array of displacement measurements for scatter plot reproduction (Fig.
 
 ---
 
-### `delta_theta_array.csv`
+### `delta_theta_array.csv` (if present)
 
 Orientation change values with spatial context for heatmap reproduction (Fig. 9a in paper).
 
@@ -226,14 +256,14 @@ All signals fed to the AI model undergo the following preprocessing (see `script
 
 | Signal | Filter | Resampling | Normalization |
 |--------|--------|-----------|---------------|
-| Airflow / RR | Butterworth bandpass 0.1–3 Hz | 1 Hz polyphase | z-score per channel |
-| Heart Rate | Butterworth bandpass 0.5–40 Hz | 1 Hz polyphase | z-score per channel |
-| SpO₂ | 3-point median filter | 1 Hz polyphase | z-score per channel |
+| IMU Acceleration | Butterworth bandpass 0.5–20 Hz | 1 Hz polyphase | z-score per channel |
+| Pitch / Roll | Low-pass 1 Hz | 1 Hz polyphase | z-score per channel |
+| Pressure Map | Median 3×3 kernel | 1 Hz polyphase | z-score per frame |
 
-**Windowing:** 60-second sliding windows, 50% overlap (30-second step), yielding tensors of shape `(3, 60)`.
+**Windowing:** 60-second sliding windows, 50% overlap (30-second step), yielding tensors of shape `(3, 60)` for IMU or `(32, 16, 60)` for pressure maps.
 
 ---
 
 ## Data Availability
 
-All data in this repository were collected under controlled pre-clinical (non-human) conditions at Chulalongkorn University. Raw data files are available from the corresponding author upon reasonable request. Processed data and summary files are provided directly in this repository.
+All data in this repository were collected under controlled pre-clinical (non-human) conditions at Chulalongkorn University. Raw data files are available from the corresponding author upon reasonable request.
