@@ -2,7 +2,6 @@
 
 > **Pre-clinical data and analysis code accompanying the paper:**  
 > *"Embodied AI for Closed-Loop Pneumatic Posture Regulation: A Multimodal Smart Pillow Platform for Pre-Clinical Sleep Support Research"*  
-> Chanprasert et al., Chulalongkorn University, Bangkok, Thailand
 
 [![License: CC BY 4.0](https://img.shields.io/badge/Data%20License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -168,8 +167,8 @@ See [`docs/MODEL_ARCHITECTURE.md`](docs/MODEL_ARCHITECTURE.md) for full architec
 ### 1. Environment Setup
 
 ```bash
-git clone https://github.com/<your-org>/ai-pillow-repo.git
-cd ai-pillow-repo
+git clone https://github.com/chaalee/ai-pillow-system.git
+cd ai-pillow-system
 
 # Using conda (recommended)
 conda env create -f environment.yml
@@ -255,5 +254,3 @@ If you use this dataset or code in your research, please cite:
 Department of Mechanical Engineering, Faculty of Engineering, Chulalongkorn University  
 Bangkok 10330, Thailand  
 📧 Ratchatin.c@chula.ac.th
-
-Human–Robot Collaboration and Systems Integration Research Unit, Chulalongkorn University
