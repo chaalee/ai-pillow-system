@@ -11,7 +11,7 @@ e.g., `realtime_log_S001.csv`, `realtime_log_S042.csv`
 ## CSV Schema
 
 ```
-timestamp, heart_rate_bpm, respiration_rate_brpm, spo2_pct, ocr_confidence, frame_id, ai_state, actuation_triggered, session_id
+timestamp,heart_rate,respiration,spo2
 ```
 
 See [`../../docs/DATA_DICTIONARY.md`](../../docs/DATA_DICTIONARY.md) for full field descriptions.
