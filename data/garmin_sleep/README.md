@@ -6,11 +6,10 @@ Place Garmin-exported physiological data files here.
 
 | File | Description |
 |------|-------------|
-| `hrv_series.csv` | HRV time series |
-| `respiration_series.csv` | Respiration rate |
-| `spo2_series.csv` | Blood oxygen saturation |
-| `sleep_stages.csv` | Sleep stage annotations |
-| `session_metadata.csv` | Session metadata |
+| `garmin-connect-hrv-values.csv` | HRV time series |
+| `garmin-connect-sleep-respiration.csv` | Respiration rate |
+| `garmin-connect-sleep-pulse-ox.csv` | Blood oxygen saturation |
+| `garmin-connect-sleep-stage.csv` | Sleep stage annotations |
 
 See [`../../docs/DATA_DICTIONARY.md`](../../docs/DATA_DICTIONARY.md) for full schema.
 
