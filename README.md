@@ -4,7 +4,7 @@
 > *"Embodied AI for Closed-Loop Pneumatic Posture Regulation: A Multimodal Smart Pillow Platform for Pre-Clinical Sleep Support Research"*  
 >
 > **Author:** Chalinee Chanprasert, Nutnaree Duangdee, Kirana Trakulmaykee, Waritsanant Rattanachaipong, Ratchatin Chancharoen  
-> **Affiliation:** Department of Mechanical Engineering, Chulalongkorn University, Bangkok, Thailand  
+> **Affiliation:** Robotics and AI, International School of Engineering, Chulalongkorn University, Bangkok, Thailand  
 
 [![License: CC BY 4.0](https://img.shields.io/badge/Data%20License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![Code License: MIT](https://img.shields.io/badge/Code%20License-MIT-blue.svg)](LICENSE)
@@ -53,11 +53,10 @@ ai-pillow-system/
 │
 ├── data/
 │   ├── garmin_sleep/                 # Sleep physiological time series from Garmin wearable
-│   │   ├── hrv_series.csv            # Heart rate variability (HRV) — 5-min intervals
-│   │   ├── respiration_series.csv    # Respiration rate (brpm) — 1-min intervals
-│   │   ├── spo2_series.csv           # Blood oxygen saturation (%) — 1-min intervals
-│   │   ├── sleep_stages.csv          # Sleep stage annotations (light/deep/REM/awake)
-│   │   └── session_metadata.csv      # Session ID, date, duration, ambient conditions
+│   │   ├── hrv                       # Heart rate variability (HRV) — 5-min intervals
+│   │   ├── respiration               # Respiration rate (brpm) — 1-min intervals
+│   │   ├── spo2                      # Blood oxygen saturation (%) — 1-min intervals
+│   │   ├── sleep_stages              # Sleep stage annotations (light/deep/REM/awake)
 │   │
 │   ├── ocr_realtime/                 # Real-time OCR-extracted physiological signals
 │   │   ├── realtime_log_S001.csv     # Per-session: timestamp, HR, RR, SpO₂, OCR confidence
@@ -65,19 +64,11 @@ ai-pillow-system/
 │   │   └── ...
 │   │
 │   ├── head_rotation/                # IMU-based head orientation & displacement
-│   │   ├── imu_data_S001.csv         # Raw accelerometer + derived pitch/roll angles
-│   │   ├── orientation_trials.csv    # Per-trial: chamber config, Δθ, |ΔX|
-│   │   ├── delta_theta_array.csv     # Spatial distribution of orientation change
-│   │   ├── displacement_array.csv    # Spatial distribution of horizontal displacement
-│   │   └── trial_metadata.csv        # Chamber activation pattern, initial position
+│   │   ├── imu_data_session_*.csv    # Raw accelerometer + derived pitch/roll angles
 │   │
 │   ├── pressure_sensing/             # 512-point pressure mat spatial recordings
-│   │   ├── pressure_maps/            # NumPy arrays: shape (N_frames, 32, 16)
-│   │   │   └── session_*.npy         # Pressure matrix per session (raw ADC units)
 │   │   ├── session_A.csv             # Time series: timestamp + p0–p511 pressure values
 │   │   ├── session_B.csv
-│   │   ├── pressure_summary.csv      # Per-frame max-pressure coords, stats
-│   │   └── contact_regions.csv       # Detected dominant contact region per frame
 │   │
 │   └── shhs_processed/               # SHHS/MESA training datasets (processed)
 │       ├── all_processed.npz         # Combined SHHS + MESA: X(N, 3, T), y(N, T)
@@ -111,11 +102,6 @@ ai-pillow-system/
 │   └── visualization/
 │       └── plot_all_figures.py           # Reproduce paper figures from processed data
 │
-├── notebooks/
-│   ├── 01_data_exploration.ipynb         # Load & visualize all datasets
-│   ├── 02_physiological_signal_analysis.ipynb
-│   ├── 03_pressure_spatial_analysis.ipynb
-│   └── 04_closed_loop_evaluation.ipynb
 │
 ├── results/                              # Saved figures and inference outputs
 │   ├── fig9a_delta_theta_heatmap.png
@@ -145,11 +131,10 @@ Physiological signals exported from a Garmin smartwatch via the **Labfront resea
 
 | File | Sampling | Description | Obs. range |
 |------|----------|-------------|-----------|
-| `hrv_series.csv` | 5 min | Heart rate variability (RMSSD, ms) | 42–102 ms |
-| `respiration_series.csv` | 1 min | Respiration rate (breaths/min) | 11.7–20.3 brpm |
-| `spo2_series.csv` | 1 min | Blood oxygen saturation (%) | 83–100% |
-| `sleep_stages.csv` | Variable | Sleep stage annotations (light/deep/REM/awake) | — |
-| `session_metadata.csv` | — | Session ID, date, duration, conditions | — |
+| `garmin-connect-hrv-values.csv` | 5 min | Heart rate variability (RMSSD, ms) | 42–102 ms |
+| `garmin-connect-sleep-respiration.csv` | 1 min | Respiration rate (breaths/min) | 11.7–20.3 brpm |
+| `garmin-connect-sleep-pulse-ox.csv` | 1 min | Blood oxygen saturation (%) | 83–100% |
+| `garmin-connect-sleep-stage.csv` | Variable | Sleep stage annotations (light/deep/REM/awake) | — |
 
 **Key apnea indicators:**
 - SpO₂ shows gradual decrease → transient desaturation (83–88%)
@@ -177,9 +162,8 @@ timestamp, heart_rate, respiration_rate, spo2, session_id, ocr_confidence
 |-------|------|-------|-------|
 | `timestamp` | `YYYY-MM-DD HH:MM:SS` | — | Wall-clock time |
 | `heart_rate` | bpm | 30–200 | From Garmin wearable |
-| `respiration_rate` | brpm | 4–60 | From Garmin wearable |
+| `respiration` | brpm | 4–60 | From Garmin wearable |
 | `spo2` | % | 70–100 | From Garmin wearable |
-| `ocr_confidence` | 0–1 | — | Tesseract v5 confidence score; <0.5 = flagged |
 
 **OCR pipeline:**
 ```
@@ -203,10 +187,6 @@ IMU-based orientation angles and displacement measurements from a surrogate head
 | File | Sampling | Description |
 |------|----------|-------------|
 | `imu_data_<session_id>.csv` | ~10 Hz | Raw accelerometer [X, Y, Z] + derived pitch/roll |
-| `orientation_trials.csv` | Per trial | Δθ, \|ΔX\|, chamber config per actuation |
-| `delta_theta_array.csv` | Spatial | Orientation change distribution across chambers |
-| `displacement_array.csv` | Spatial | Horizontal displacement distribution |
-| `trial_metadata.csv` | Per trial | Chamber activation pattern, initial position |
 
 **Observed ranges (pre-clinical):**
 
@@ -232,9 +212,6 @@ Spatial contact force distributions from the 512-point piezoresistive pressure m
 | File | Format | Sampling | Description |
 |------|--------|----------|-------------|
 | `session_<id>.csv` | CSV | ~5 Hz | Time series: timestamp + 512 pressure cell values |
-| `pressure_maps/*.npy` | NumPy | ~5 Hz | 2D arrays: shape (N_frames, 32, 16) |
-| `pressure_summary.csv` | CSV | Per session | Max-pressure coordinates, centroid, statistics |
-| `contact_regions.csv` | CSV | Per frame | Detected dominant contact region |
 
 **Array shape:** Each pressure map is a `(32 × 16)` grid, values in raw ADC units or normalized 0–1.
 
@@ -513,7 +490,7 @@ If you use this dataset or code in your research, please cite:
 
 ## 🔗 Acknowledgments
 
-This research was supported by the Department of Mechanical Engineering and the Human–Robot Collaboration and Systems Integration Research Unit at Chulalongkorn University, Bangkok, Thailand.
+This research was supported by Robotics and AI, International School of Engineering, Bangkok, Thailand.
 
 **Data sources:**
 - **SHHS:** [Sleep Heart Health Study](https://sleepdata.org/datasets/shhs) (NSRR, NIH)
